@@ -5,7 +5,7 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>EzCord-Utils</name>
+    <name>EzCord Utils</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor url="https://geckotv.me">Gecko-Development</vendor>
@@ -25,7 +25,7 @@
             <li><b>Smart Language Key Autocomplete</b> - Instantly suggests available language keys as you type</li>
             <li><b>Quick Documentation</b> - Hover over any language key to see its translation in real-time</li>
             <li><b>One-Click Navigation</b> - Jump directly to language definitions in YAML files with gutter icons</li>
-            <li><b>File Prefix Detection</b> - Automatically resolves keys with file-based prefixes</li>
+            <li><b>Language Keys Tool Window</b> - View all language keys and translations in a dedicated tool window with detailed information</li>
         </ul>
 
         <h3>🎯 Perfect For</h3>
@@ -33,6 +33,10 @@
             Developers working with <a href="https://ezcord.readthedocs.io/en/latest/">EzCord</a> who want to boost productivity and reduce errors
             when managing multi-language support.
         </p>
+        <h3>Sponsors</h3>
+        <a href="https://cookieapp.me/" title="Cookie-Bot" target="_blank">
+          <img src="https://cdn.cookieapp.me/bot/banner.png" alt="Cookie - Discord Bot" border=0/>
+        </a>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -45,7 +49,7 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Language Keys" factoryClass="me.geckotv.ezcordutils.language.LanguageKeyToolWindowFactory"
-                    icon="AllIcons.Toolwindows.Documentation"
+                    icon="AllIcons.FileTypes.I18n"
                     anchor="right"/>
 
         <!-- Settings -->
@@ -65,7 +69,6 @@
             language="Python"
             implementationClass="me.geckotv.ezcordutils.language.LanguageDocumentationProvider"
             order="first"/>
-
 
         <!-- Line marker for language keys -->
         <codeInsight.lineMarkerProvider
