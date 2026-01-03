@@ -44,7 +44,7 @@ intellijPlatform {
                 <li><b>Smart Language Key Autocomplete</b> - Get intelligent suggestions for all available language keys as you type</li>
                 <li><b>Quick Documentation on Hover</b> - Instantly see translations when hovering over language keys in your Python code</li>
                 <li><b>One-Click Navigation with Gutter Icons</b> - Jump directly to YAML language file definitions with clickable icons</li>
-                <li><b>Automatic File Prefix Detection</b> - Resolves keys with file-based prefixes automatically</li>
+                <li><b>Language Keys Tool Window</b> - View all language keys and translations in a dedicated tool window with detailed information</li>
             </ul>
             <p><i>Happy Discord bot development! 🤖</i></p>
         """.trimIndent()
