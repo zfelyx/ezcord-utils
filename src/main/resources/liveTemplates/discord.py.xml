@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templateSet group="Discord.py>">
+
+    <!-- Bot Main -->
+    <template name="ezpy-main" value="import asyncio&#10;import discord&#10;import ezcord&#10;&#10;&#10;class Bot(ezcord.Bot):&#10;    def __init__(self):&#10;        super().__init__(intents=discord.Intents.$INTENTS$())&#10;&#10;    async def setup_hook(self):&#10;        await super().setup_hook()&#10;        await self.tree.sync()&#10;&#10;&#10;async def main():&#10;    async with Bot() as bot:&#10;        bot.add_help_command()&#10;        bot.load_cogs()&#10;        await bot.start()&#10;&#10;&#10;if __name__ == &quot;__main__&quot;:&#10;    asyncio.run(main())&#10;$END$" description="[d.py] Main with ezcord" toReformat="true" toShortenFQNames="true">
+        <variable name="INTENTS" expression="" defaultValue="&quot;default&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="Python" value="true" />
+        </context>
+    </template>
+
+    <!-- Cog Template -->
+    <template name="ezpy-cog" value="import discord&#10;import ezcord&#10;from discord import app_commands&#10;&#10;&#10;class $COG_NAME$(ezcord.Cog, emoji=&quot;$EMOJI$&quot;):&#10;    def __init__(self, bot: ezcord.Bot):&#10;        self.bot = bot&#10;&#10;    @app_commands.command(description=&quot;$DESCRIPTION$&quot;)&#10;    async def $COMMAND_NAME$(self, interaction: discord.Interaction):&#10;        await interaction.response.send_message(&quot;$RESPONSE$&quot;)&#10;&#10;&#10;async def setup(bot: ezcord.Bot):&#10;    await bot.add_cog($COG_NAME$(bot))&#10;$END$" description="[d.py] Cog with ezcord" toReformat="true" toShortenFQNames="true">
+        <variable name="COG_NAME" expression="" defaultValue="&quot;Base&quot;" alwaysStopAt="true" />
+        <variable name="EMOJI" expression="" defaultValue="&quot;👋🏼&quot;" alwaysStopAt="true" />
+        <variable name="COMMAND_NAME" expression="" defaultValue="&quot;hey&quot;" alwaysStopAt="true" />
+        <variable name="DESCRIPTION" expression="" defaultValue="&quot;Say hello!&quot;" alwaysStopAt="true" />
+        <variable name="RESPONSE" expression="" defaultValue="&quot;Hello Everyone!&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="Python" value="true" />
+        </context>
+    </template>
+
+    <!-- Button Template -->
+    <template name="ezpy-button" value="class $BUTTON_NAME$(discord.ui.Button):&#10;    def __init__(self):&#10;        super().__init__(label=&quot;$LABEL$&quot;, emoji=&quot;$EMOJI$&quot;, style=discord.ButtonStyle.$STYLE$)&#10;    &#10;    async def callback(self, interaction: discord.Interaction):&#10;        await interaction.response.send_message(f&quot;$RESPONSE$&quot;)&#10;$END$" description="[d.py] Button with ezcord" toReformat="true" toShortenFQNames="true">
+        <variable name="BUTTON_NAME" expression="" defaultValue="&quot;Button&quot;" alwaysStopAt="true" />
+        <variable name="LABEL" expression="" defaultValue="&quot;Welcome&quot;" alwaysStopAt="true" />
+        <variable name="EMOJI" expression="" defaultValue="&quot;👋🏼&quot;" alwaysStopAt="true" />
+        <variable name="STYLE" expression="" defaultValue="&quot;gray&quot;" alwaysStopAt="true" />
+        <variable name="RESPONSE" expression="" defaultValue="&quot;👋🏼 Welcome {interaction.user.name}!&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="Python" value="true" />
+        </context>
+    </template>
+
+    <!-- Modal Template -->
+    <template name="ezpy-modal" value="class $MODAL_NAME$(discord.ui.Modal):&#10;    def __init__(self):&#10;        super().__init__(title=&quot;$TITLE$&quot;)&#10;        &#10;        self.add_item(&#10;            discord.ui.TextInput(&#10;                label=&quot;$LABEL_TEXT$&quot;,&#10;                placeholder=&quot;$PLACEHOLDER$&quot;,&#10;                required=$REQUIRED$,&#10;            )&#10;        )&#10;    &#10;    async def on_submit(self, interaction: discord.Interaction):&#10;        typed = self.children[0].value&#10;        await interaction.response.send_message(f&quot;$RESPONSE$&quot;)&#10;$END$" description="[d.py] Modal with ezcord" toReformat="true" toShortenFQNames="true">
+        <variable name="MODAL_NAME" expression="" defaultValue="&quot;Modal&quot;" alwaysStopAt="true" />
+        <variable name="TITLE" expression="" defaultValue="&quot;Just a Title&quot;" alwaysStopAt="true" />
+        <variable name="LABEL_TEXT" expression="" defaultValue="&quot;Label&quot;" alwaysStopAt="true" />
+        <variable name="PLACEHOLDER" expression="" defaultValue="&quot;This is a placeholder&quot;" alwaysStopAt="true" />
+        <variable name="REQUIRED" expression="" defaultValue="True" alwaysStopAt="true" />
+        <variable name="RESPONSE" expression="" defaultValue="&quot;You typed: {typed}&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="Python" value="true" />
+        </context>
+    </template>
+
+    <!-- Select Template -->
+    <template name="ezpy-select" value="class $SELECT_NAME$(discord.ui.Select):&#10;    def __init__(self):&#10;        options = [&#10;            discord.SelectOption(label=&quot;Option 1&quot;, value=&quot;1&quot;),&#10;            discord.SelectOption(label=&quot;Option 2&quot;, value=&quot;2&quot;),&#10;            # Add more options&#10;        ]&#10;        super().__init__(&#10;            placeholder=&quot;$PLACEHOLDER$&quot;,&#10;            options=options,&#10;        )&#10;    &#10;    async def callback(self, interaction: discord.Interaction):&#10;        selected = self.values[0]&#10;        await interaction.response.send_message(f&quot;$RESPONSE$&quot;)&#10;$END$" description="[d.py] Select with ezcord" toReformat="true" toShortenFQNames="true">
+        <variable name="SELECT_NAME" expression="" defaultValue="&quot;Select&quot;" alwaysStopAt="true" />
+        <variable name="PLACEHOLDER" expression="" defaultValue="&quot;This is a Select&quot;" alwaysStopAt="true" />
+        <variable name="RESPONSE" expression="" defaultValue="&quot;You selected: {selected}&quot;" alwaysStopAt="true" />
+        <context>
+            <option name="Python" value="true" />
+        </context>
+    </template>
+
+</templateSet>

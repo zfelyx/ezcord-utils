@@ -48,6 +48,10 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <!-- Live Templates -->
+        <defaultLiveTemplates file="/liveTemplates/discord.py.xml"/>
+        <defaultLiveTemplates file="/liveTemplates/py-cord.xml"/>
+
         <toolWindow id="Language Keys" factoryClass="me.geckotv.ezcordutils.language.LanguageKeyToolWindowFactory"
                     icon="AllIcons.FileTypes.I18n"
                     anchor="right"/>
