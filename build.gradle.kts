@@ -39,7 +39,7 @@ intellijPlatform {
         }
 
         changeNotes = """
-            <h3>Version 1.1.0 - New Features 🎉</h3>
+            <h3>Version 1.0.1 - New Features 🎉</h3>
             <ul>
                 <li><b>Live Templates</b> - Speed up your coding with pre-defined templates for common discord features</li>
                 <li><b>Enhanced Autocomplete</b> - Now supports both shortened and full language key formats (e.g., both `embed.title` and `base.embed.title`)</li>
