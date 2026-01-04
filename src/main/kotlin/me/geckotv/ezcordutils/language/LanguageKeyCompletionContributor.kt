@@ -31,17 +31,12 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
         val project = parameters.position.project
         val file = parameters.originalFile
 
-        println("[DEBUG Autocomplete] File: ${file.name}")
-
         // Get the file prefix (e.g., "welcome" from "welcome.py")
         val filePrefix = LanguageUtils().getFilePrefix(file.name)
-        println("[DEBUG Autocomplete] File prefix: $filePrefix")
 
         // Get all available language keys
         val resolver = LanguageResolver(project)
         val allKeys = resolver.getAllKeys()
-
-        println("[DEBUG Autocomplete] Found ${allKeys.size} total keys")
 
         // Filter keys based on file prefix if available
         val relevantKeys = if (filePrefix != null) {
@@ -50,31 +45,38 @@ class LanguageKeyCompletionProvider : CompletionProvider<CompletionParameters>()
             allKeys
         }
 
-        println("[DEBUG Autocomplete] Showing ${relevantKeys.size} relevant keys")
-
         // Add completion items
         relevantKeys.forEach { fullKey ->
             val translation = resolver.resolve(fullKey)
 
-            // Keep "general." prefix, otherwise remove file prefix
-            val displayKey = if (fullKey.startsWith("general.")) {
-                fullKey
+            // For general keys, keep the full key
+            if (fullKey.startsWith("general.")) {
+                val lookupElement = LookupElementBuilder.create(fullKey)
+                    .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                    .bold()
+                result.addElement(lookupElement)
             } else if (filePrefix != null && fullKey.startsWith("$filePrefix.")) {
-                fullKey.removePrefix("$filePrefix.")
+                val shortKey = fullKey.removePrefix("$filePrefix.")
+
+                result.addElement(
+                    LookupElementBuilder.create(shortKey)
+                        .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                        .bold()
+                )
+
+                result.addElement(
+                    LookupElementBuilder.create(fullKey)
+                        .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                        .bold()
+                )
             } else {
-                fullKey
+                // Add other keys as-is
+                val lookupElement = LookupElementBuilder.create(fullKey)
+                    .withTypeText(translation ?: "⚠️ Not Translated yet", true)
+                    .bold()
+                result.addElement(lookupElement)
             }
-
-            println("[DEBUG Autocomplete] Adding key: $displayKey (original: $fullKey) -> $translation")
-
-            val lookupElement = LookupElementBuilder.create(displayKey)
-                .withTypeText(translation ?: "⚠️ Not Translated yet", true)
-                .bold()
-
-            result.addElement(lookupElement)
         }
-
-        println("[DEBUG Autocomplete] Added ${relevantKeys.size} completion items")
     }
 }
 
