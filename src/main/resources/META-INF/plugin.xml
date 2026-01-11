@@ -25,6 +25,7 @@
             <li><b>One-Click Navigation</b> - Jump directly to language definitions in YAML files with gutter icons</li>
             <li><b>Language Keys Tool Window</b> - View all language keys and translations in a dedicated tool window with detailed information</li>
             <li><b>Live Templates</b> - Speed up your coding with pre-defined templates for common discord features</li>
+            <li><b>TODO Tracker</b> - Keep track of all TODO comments across your project with an organized tree view</li>
         </ul>
 
         <h3>🎯 Perfect For</h3>
@@ -57,31 +58,37 @@
 
         <!-- Settings -->
         <projectConfigurable
-            parentId="tools"
-            instance="me.geckotv.ezcordutils.settings.EzCordSettingsConfigurable"
-            id="me.geckotv.ezcordutils.settings"
-            displayName="EzCord Settings"/>
+                parentId="tools"
+                instance="me.geckotv.ezcordutils.settings.EzCordSettingsConfigurable"
+                id="me.geckotv.ezcordutils.settings"
+                displayName="EzCord Settings"/>
 
         <!-- Language Key Autocomplete -->
         <completion.contributor
-            language="Python"
-            implementationClass="me.geckotv.ezcordutils.language.LanguageKeyCompletionContributor"
-            order="first"/>
+                language="Python"
+                implementationClass="me.geckotv.ezcordutils.language.LanguageKeyCompletionContributor"
+                order="first"/>
 
         <lang.documentationProvider
-            language="Python"
-            implementationClass="me.geckotv.ezcordutils.language.LanguageDocumentationProvider"
-            order="first"/>
+                language="Python"
+                implementationClass="me.geckotv.ezcordutils.language.LanguageDocumentationProvider"
+                order="first"/>
 
         <!-- Line marker for language keys -->
         <codeInsight.lineMarkerProvider
-            language="Python"
-            implementationClass="me.geckotv.ezcordutils.language.LanguageKeyLineMarkerProvider"/>
+                language="Python"
+                implementationClass="me.geckotv.ezcordutils.language.LanguageKeyLineMarkerProvider"/>
+
+        <!-- TODO Tracker -->
+        <toolWindow id="TODO"
+                    anchor="right"
+                    factoryClass="me.geckotv.ezcordutils.todo.TodoToolWindowFactory"
+                    icon="AllIcons.General.TodoDefault"/>
     </extensions>
 
     <projectListeners>
         <listener
-            class="me.geckotv.ezcordutils.language.LanguageFileEditorListener"
-            topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+                class="me.geckotv.ezcordutils.language.LanguageFileEditorListener"
+                topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
     </projectListeners>
 </idea-plugin>
