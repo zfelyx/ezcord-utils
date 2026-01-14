@@ -80,7 +80,7 @@
                 implementationClass="me.geckotv.ezcordutils.language.LanguageKeyLineMarkerProvider"/>
 
         <!-- TODO Tracker -->
-        <toolWindow id="TODO"
+        <toolWindow id="EZCORD TODO"
                     anchor="right"
                     factoryClass="me.geckotv.ezcordutils.todo.TodoToolWindowFactory"
                     icon="AllIcons.General.TodoDefault"/>
