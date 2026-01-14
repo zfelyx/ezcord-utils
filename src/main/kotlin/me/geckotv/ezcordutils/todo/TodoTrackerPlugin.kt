@@ -116,7 +116,7 @@ class TodoPanel(private val project: Project) : JPanel(BorderLayout()) {
         val todos = mutableListOf<TodoItem>()
         val scope = GlobalSearchScope.projectScope(project)
 
-        val supportedExtensions = listOf("java", "kt", "js", "ts", "py", "cpp", "c", "html", "css")
+        val supportedExtensions = listOf("py")
 
         supportedExtensions.forEach { ext ->
             val files = FileTypeIndex.getFiles(
@@ -221,11 +221,7 @@ class AddTodoAction(private val project: Project, private val panel: TodoPanel) 
         ))
 
         val virtualFile = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
-        val fileExtension = virtualFile?.extension?.lowercase() ?: ""
-        val commentPrefix = when (fileExtension) {
-            "py", -> "#"
-            else -> "//"
-        }
+        val commentPrefix = "#"
 
         val indent = line.takeWhile { it.isWhitespace() }
         val todoLine = "$indent$commentPrefix TODO: $text\n"
