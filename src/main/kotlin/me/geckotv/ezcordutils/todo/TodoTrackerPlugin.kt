@@ -85,22 +85,24 @@ class TodoPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     fun refreshTodos() {
         ApplicationManager.getApplication().runReadAction {
-            rootNode.removeAllChildren()
-
             val todos = findAllTodos()
 
-            if (todos.isEmpty()) {
-                val emptyNode = DefaultMutableTreeNode("🎉 No TODOs found!")
-                rootNode.add(emptyNode)
-            } else {
-                todos.forEach { todo ->
-                    val todoNode = DefaultMutableTreeNode(todo)
-                    rootNode.add(todoNode)
-                }
-            }
+            ApplicationManager.getApplication().invokeLater {
+                rootNode.removeAllChildren()
 
-            treeModel.reload()
-            expandAll()
+                if (todos.isEmpty()) {
+                    val emptyNode = DefaultMutableTreeNode("🎉 No TODOs found!")
+                    rootNode.add(emptyNode)
+                } else {
+                    todos.forEach { todo ->
+                        val todoNode = DefaultMutableTreeNode(todo)
+                        rootNode.add(todoNode)
+                    }
+                }
+
+                treeModel.reload()
+                expandAll()
+            }
         }
     }
 
@@ -123,27 +125,28 @@ class TodoPanel(private val project: Project) : JPanel(BorderLayout()) {
             )
 
             files.forEach { file ->
-                val psiFile = PsiManager.getInstance(project).findFile(file)
-                psiFile?.let {
-                    val text = it.text
-                    val lines = text.split("\n")
+                val document = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)
+                document?.let { doc ->
+                    val lineCount = doc.lineCount
+                    for (lineIndex in 0 until lineCount) {
+                        val start = doc.getLineStartOffset(lineIndex)
+                        val end = doc.getLineEndOffset(lineIndex)
+                        val lineText = doc.getText(com.intellij.openapi.util.TextRange(start, end))
 
-                    lines.forEachIndexed { index, line ->
-                        val regex = """(?://|#)\s*TODO\s*:\s*(.+)""".toRegex(RegexOption.IGNORE_CASE)
-                        val match = regex.find(line)
+                        if (!lineText.contains("TODO", ignoreCase = true)) continue
 
-                        match?.let { m ->
-                            val todoText = m.groupValues[1].trim()
+                        val regex = """\s*(?:(?:\/\/|#|/\*|<!--)|\*)?\s*TODO\s*:\s*(.+?)(?:\s*(?:\*/|-->))?""".toRegex(RegexOption.IGNORE_CASE)
+                        val match = regex.find(lineText)
+                        val todoText = match?.groupValues?.get(1)?.trim() ?: lineText.trim()
 
-                            todos.add(
-                                TodoItem(
-                                    text = todoText,
-                                    file = file,
-                                    line = index,
-                                    fileName = file.name
-                                )
+                        todos.add(
+                            TodoItem(
+                                text = todoText,
+                                file = file,
+                                line = lineIndex,
+                                fileName = file.name
                             )
-                        }
+                        )
                     }
                 }
             }
@@ -220,7 +223,7 @@ class AddTodoAction(private val project: Project, private val panel: TodoPanel) 
         val virtualFile = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
         val fileExtension = virtualFile?.extension?.lowercase() ?: ""
         val commentPrefix = when (fileExtension) {
-            "py", "sh", "yml", "yaml", "rb", "r" -> "#"
+            "py", -> "#"
             else -> "//"
         }
 
