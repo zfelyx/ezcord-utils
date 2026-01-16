@@ -13,7 +13,21 @@ class LanguageUtils {
      * Uses stable PSI API by removing quotes from text property.
      */
     fun extractStringValue(pyString: PyStringLiteralExpression): String {
-        return pyString.text.trim().removeSurrounding("\"").removeSurrounding("'")
+        var text = pyString.text.trim()
+        val firstQuote = text.firstOrNull { it == '"' || it == '\'' } ?: return text
+        val firstQuoteIndex = text.indexOf(firstQuote)
+
+        if (firstQuoteIndex > 0) {
+            text = text.substring(firstQuoteIndex)
+        }
+
+        if (text.startsWith("\"\"\"") && text.endsWith("\"\"\"")) {
+            return text.removeSurrounding("\"\"\"")
+        }
+        if (text.startsWith("'''") && text.endsWith("'''")) {
+            return text.removeSurrounding("'''")
+        }
+        return text.removeSurrounding("\"").removeSurrounding("'")
     }
 
     /**
@@ -21,7 +35,7 @@ class LanguageUtils {
      * A valid key must not be blank and must contain a dot.
      */
     fun isValidLanguageKey(stringValue: String): Boolean {
-        return stringValue.isNotBlank() && stringValue.contains('.')
+        return stringValue.isNotBlank() && (stringValue.contains('.') || stringValue.contains("{{"))
     }
 
     /**
@@ -129,7 +143,7 @@ class LanguageUtils {
         val foundKeys = mutableListOf<Pair<String, LanguageKeyLocation>>()
 
         // Check if string contains {key} pattern(s)
-        val keyPattern = Regex("""[{]([a-zA-Z0-9_.]+)[}]""")
+        val keyPattern = Regex("""(?:\{\{|\{)([a-zA-Z0-9_.\-]+)(?:}}|\})""")
         val matches = keyPattern.findAll(stringValue).toList()
 
 

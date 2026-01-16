@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.utils.LanguageUtils
 import me.geckotv.ezcordutils.settings.EzCordSettings
@@ -73,20 +74,8 @@ class LanguageDocumentationProvider : AbstractDocumentationProvider() {
         contextElement: PsiElement?,
         targetOffset: Int
     ): PsiElement? {
-        // Check if we're hovering over a Python string or inside one
-        val element = when {
-            contextElement is PyStringLiteralExpression -> {
-                contextElement
-            }
-            contextElement?.parent is PyStringLiteralExpression -> {
-                contextElement.parent as PyStringLiteralExpression
-            }
-            else -> {
-                null
-            }
-        }
-
-        return element
+        if (contextElement == null) return null
+        return PsiTreeUtil.getParentOfType(contextElement, PyStringLiteralExpression::class.java, false)
     }
 
     /**
