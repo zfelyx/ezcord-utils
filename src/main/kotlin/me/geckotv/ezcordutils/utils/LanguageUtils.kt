@@ -3,6 +3,9 @@ package me.geckotv.ezcordutils.utils
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.search.FileTypeIndex
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.FilenameIndex
 import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.language.LanguageKeyLocation
 import me.geckotv.ezcordutils.language.LanguageResolver
@@ -25,18 +28,15 @@ class LanguageUtils {
     }
 
     /**
-     * Extracts the prefix from a filename (e.g., "welcome" from "welcome.py").
-     * Handles formats like "welcome.py", "welcome.container.py", etc.
+     * Extracts the prefix from a filename (e.g., "welcome" from "welcome.py" or "welcome.container.py").
+     * For python files we return the part before the first dot (so "welcome.container.py" -> "welcome").
      */
     fun getFilePrefix(filename: String): String? {
         if (!filename.endsWith(".py")) return null
 
         val nameWithoutExtension = filename.removeSuffix(".py")
-
-        // If the filename contains dots, take everything before the last component
-        // e.g., "welcome.container.py" -> "welcome.container"
-        // e.g., "welcome.py" -> "welcome"
-        return nameWithoutExtension.ifEmpty { null }
+        val prefix = nameWithoutExtension.substringBefore('.') // take first component before any further dots
+        return prefix.ifEmpty { null }
     }
 
     /**
@@ -113,7 +113,7 @@ class LanguageUtils {
     }
 
     /**
-     * Finds all language keys in a string value.
+     * Finds all language keys in a string value (with resolution).
      * Supports both direct keys ("general.test") and {key} patterns ("{embed.title}").
      *
      * @param stringValue The string to search in.
@@ -152,5 +152,55 @@ class LanguageUtils {
 
         return foundKeys
     }
-}
 
+    /**
+     * Scans the project for YAML language files and returns their base filenames (without extension)
+     * as possible language prefixes (e.g. "welcome" for "welcome.yml").
+     */
+    fun findLanguagePrefixes(project: Project): Set<String> {
+        val prefixes = mutableSetOf<String>()
+        try {
+            val scope = GlobalSearchScope.projectScope(project)
+            val ymlFiles = FilenameIndex.getAllFilesByExt(project, "yml", scope)
+            val yamlFiles = FilenameIndex.getAllFilesByExt(project, "yaml", scope)
+            val files = ymlFiles + yamlFiles
+            for (vFile in files) {
+                val name = vFile.name
+                val base = name.substringBeforeLast('.') // "welcome.yml" -> "welcome"
+                if (base.isNotBlank()) prefixes.add(base)
+            }
+        } catch (e: Exception) {
+            // ignore indexing/read errors, return whatever found
+        }
+        return prefixes
+    }
+
+    companion object {
+    @JvmStatic
+        fun findAllKeysInString(stringValue: String, filePrefix: String?): Set<String> {
+            val keys = mutableSetOf<String>()
+
+            val keyPattern = Regex("""[{]([a-zA-Z0-9_.]+)[}]""")
+            val matches = keyPattern.findAll(stringValue).toList()
+
+            if (matches.isNotEmpty()) {
+                for (match in matches) {
+                    val extractedKey = match.groupValues[1]
+                    keys.add(extractedKey)
+
+                    if (filePrefix != null && !extractedKey.startsWith("$filePrefix.")) {
+                        keys.add("$filePrefix.$extractedKey")
+                    }
+                }
+            } else if (stringValue.contains('.')) {
+                keys.add(stringValue)
+
+                if (filePrefix != null && !stringValue.startsWith("$filePrefix.")) {
+                    keys.add("$filePrefix.$stringValue")
+                }
+            }
+
+            return keys
+        }
+    }
+}

@@ -77,6 +77,11 @@
         <codeInsight.lineMarkerProvider
             language="Python"
             implementationClass="me.geckotv.ezcordutils.language.LanguageKeyLineMarkerProvider"/>
+
+        <!-- Line marker for showing where YAML keys are used -->
+        <codeInsight.lineMarkerProvider
+                language="yaml"
+                implementationClass="me.geckotv.ezcordutils.language.YamlKeyUsageLineMarkerProvider"/>
     </extensions>
 
     <projectListeners>
