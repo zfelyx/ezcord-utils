@@ -131,21 +131,9 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
     }
 
     private fun isKeyMatch(text: String, targetKey: String, filePrefix: String?): Boolean {
-        // Direct match
-        if (text == targetKey) return true
-
-        // Match with file prefix
-        if (filePrefix != null && "$filePrefix.$text" == targetKey) return true
-
-        // Match in {key} pattern
-        val pattern = Regex("""\{([a-zA-Z0-9_.]+)\}""")
-        for (match in pattern.findAll(text)) {
-            val key = match.groupValues[1]
-            if (key == targetKey) return true
-            if (filePrefix != null && "$filePrefix.$key" == targetKey) return true
-        }
-
-        return false
+        // Delegate key extraction and prefix handling to LanguageUtils
+        val keysInText = LanguageUtils.findAllKeysInString(text, filePrefix)
+        return keysInText.contains(targetKey)
     }
 
     private fun createTooltip(key: String, usages: List<KeyUsageLocation>): String {
