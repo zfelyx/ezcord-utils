@@ -1,6 +1,7 @@
 # EzCord Utils - IntelliJ Plugin
-
-A powerful IntelliJ plugin to streamline Discord bot development with [EzCord](https://ezcord.readthedocs.io/en/latest/).
+[![Version](https://img.shields.io/jetbrains/plugin/v/29591?style=for-the-badge&logo=jetbrains&color=ff7f00)](https://plugins.jetbrains.com/plugin/29591)
+![Downloads](https://img.shields.io/jetbrains/plugin/d/29591?style=for-the-badge&logo=icloud&logoColor=white&color=00aaff)
+[![Rating](https://img.shields.io/jetbrains/plugin/r/rating/29591?style=for-the-badge&logo=starship&color=yellow)](https://plugins.jetbrains.com/plugin/29591)
 
 ## ✨ Features
 
