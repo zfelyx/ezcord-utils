@@ -143,7 +143,7 @@ class LanguageUtils {
         val foundKeys = mutableListOf<Pair<String, LanguageKeyLocation>>()
 
         // Check if string contains {key} pattern(s)
-        val keyPattern = Regex("""(?:\{\{|\{)([a-zA-Z0-9_.\-]+)(?:}}|\})""")
+        val keyPattern = Regex("""(?:\{\{|\{)([a-zA-Z0-9_.\-]+)(?:}}|})""")
         val matches = keyPattern.findAll(stringValue).toList()
 
 
