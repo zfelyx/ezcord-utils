@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0.2"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
@@ -39,6 +39,13 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>Version 1.0.3 - Navigation Improvements 🧭</h3>
+            <ul>
+                <li><b>Fallback Language Navigation</b> - Use `Shift+Click` on language keys to navigate directly to the fallback language file (e.g. `en.yml`) instead of the default language</li>
+                <li><b>Autocomplete Everything Option</b> - New setting to enable autocomplete suggestions for all language keys, regardless of file prefix</li>
+                <li><b>🐞 Bug Fixes with the language Docs</b> - Fixed issues where hovering over certain language keys did not show the correct translation</li>
+            </ul>
+
             <h3>Version 1.0.2 - Stability & Compatibility 🔧</h3>
             <ul>
                 <li><b>Code Cleanup</b> - Removed code duplication and improved maintainability</li>

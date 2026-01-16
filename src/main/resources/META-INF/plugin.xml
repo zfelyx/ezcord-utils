@@ -22,7 +22,7 @@
         <ul>
             <li><b>Smart Language Key Autocomplete</b> - Instantly suggests available language keys as you type</li>
             <li><b>Quick Documentation</b> - Hover over any language key to see its translation in real-time</li>
-            <li><b>One-Click Navigation</b> - Jump directly to language definitions in YAML files with gutter icons</li>
+            <li><b>One-Click Navigation</b> - Jump directly to language definitions in YAML files with gutter icons (use Ctrl+Click for jumping to fallback)</li>
             <li><b>Language Keys Tool Window</b> - View all language keys and translations in a dedicated tool window with detailed information</li>
             <li><b>Live Templates</b> - Speed up your coding with pre-defined templates for common discord features</li>
         </ul>
