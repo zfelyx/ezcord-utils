@@ -75,17 +75,12 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
     private fun findUsagesForBothVariants(project: Project, fullKey: String): List<KeyUsageLocation> {
         val allUsages = mutableSetOf<KeyUsageLocation>()
 
-        // Der fullKey kommt z.B. als "welcome.embed.title" von der YAML-Datei
-
-        // 1. Suche nach vollständigem Key (welcome.embed.title)
         allUsages.addAll(findUsagesInPythonFiles(project, fullKey, fullKey, null))
 
-        // 2. Wenn der Key einen Punkt enthält, extrahiere den Datei-Präfix
         if (fullKey.contains(".")) {
-            val filePrefix = fullKey.substringBefore(".")  // "welcome"
-            val keyWithoutPrefix = fullKey.substringAfter(".")  // "embed.title"
+            val filePrefix = fullKey.substringBefore(".")
+            val keyWithoutPrefix = fullKey.substringAfter(".")
 
-            // Suche nach dem Key ohne Präfix, aber nur in Dateien mit passendem Präfix
             allUsages.addAll(findUsagesInPythonFiles(project, keyWithoutPrefix, fullKey, filePrefix))
         }
 
@@ -106,7 +101,6 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
                 val scope = GlobalSearchScope.projectScope(project)
                 val pythonFiles = FileTypeIndex.getFiles(PythonFileType.INSTANCE, scope)
 
-                // Beide Varianten für die Suche: mit und ohne geschweifte Klammern
                 val searchPatterns = listOf(
                     searchKey,
                     "{$searchKey}"
@@ -114,20 +108,16 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
 
                 val languagePrefixes = utils.findLanguagePrefixes(project)
 
-                // Filter Python-Dateien basierend auf dem erforderlichen Präfix
                 val filteredFiles = pythonFiles.filter { vFile ->
-                    // Wenn ein Präfix erforderlich ist, prüfe die Kompatibilität
                     if (requiredFilePrefix != null) {
                         val filePrefix = utils.getFilePrefix(vFile.name) ?: return@filter false
 
-                        // Exakte Übereinstimmung oder der Datei-Präfix beginnt mit dem erforderlichen Präfix
                         val matches = filePrefix == requiredFilePrefix ||
                                 filePrefix.startsWith("$requiredFilePrefix.")
 
                         if (!matches) return@filter false
                     }
 
-                    // Prüfe, ob die Datei einen der Suchbegriffe enthält
                     val doc = FileDocumentManager.getInstance().getDocument(vFile)
                     val text = doc?.text ?: ""
                     searchPatterns.any { pattern -> text.contains(pattern) }
@@ -179,29 +169,18 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
         filePrefix: String?,
         requiredFilePrefix: String?
     ): Boolean {
-        // Extrahiere alle möglichen Keys aus dem String
         val keysInText = LanguageUtils.findAllKeysInString(text, filePrefix)
 
-        // Prüfe ob searchKey oder originalKey im Text vorkommt
         if (keysInText.contains(searchKey) || keysInText.contains(originalKey)) {
             return true
         }
-
-        // Zusätzliche Prüfung: Wenn wir nach einem Key ohne Präfix suchen (z.B. "embed.title")
-        // und in einer Datei mit passendem Präfix sind (z.B. "welcome.py"),
-        // dann sollte auch der vollständige Key matchen
         if (requiredFilePrefix != null && filePrefix == requiredFilePrefix) {
             val fullKeyVariant = "$filePrefix.$searchKey"
             if (keysInText.contains(fullKeyVariant)) {
                 return true
             }
         }
-
-        // Wenn der originalKey einen Präfix hat und wir nach dem searchKey suchen,
-        // prüfe ob der Text den searchKey ohne Präfix enthält
         if (searchKey != originalKey && originalKey.contains(".")) {
-            // z.B. originalKey = "welcome.embed.title", searchKey = "embed.title"
-            // Wenn der Text genau searchKey enthält, ist das ein Match
             if (text == searchKey || text == "{$searchKey}") {
                 return true
             }
