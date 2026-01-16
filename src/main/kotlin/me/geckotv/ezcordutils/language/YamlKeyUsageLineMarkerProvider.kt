@@ -29,6 +29,7 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
         if (element !is YAMLKeyValue) return null
+
         if (!element.isValid) return null
 
         val value = element.value
@@ -41,11 +42,11 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
             if (fullKey.isEmpty()) return null
 
             val project = element.project
-
-            val usages = findUsagesForBothVariants(project, fullKey)
+            val usages = findUsagesInPythonFiles(project, fullKey)
 
             if (usages.isEmpty()) return null
 
+            // Create line marker
             return LineMarkerInfo(
                 key,
                 key.textRange,
@@ -56,6 +57,7 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
                 { "Show usages" }
             )
         } catch (e: Exception) {
+            // Ignore errors silently
             return null
         }
     }
@@ -72,32 +74,7 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
         return parts.joinToString(".")
     }
 
-    private fun findUsagesForBothVariants(project: Project, fullKey: String): List<KeyUsageLocation> {
-        val allUsages = mutableSetOf<KeyUsageLocation>()
-
-        // Der fullKey kommt z.B. als "welcome.embed.title" von der YAML-Datei
-
-        // 1. Suche nach vollständigem Key (welcome.embed.title)
-        allUsages.addAll(findUsagesInPythonFiles(project, fullKey, fullKey, null))
-
-        // 2. Wenn der Key einen Punkt enthält, extrahiere den Datei-Präfix
-        if (fullKey.contains(".")) {
-            val filePrefix = fullKey.substringBefore(".")  // "welcome"
-            val keyWithoutPrefix = fullKey.substringAfter(".")  // "embed.title"
-
-            // Suche nach dem Key ohne Präfix, aber nur in Dateien mit passendem Präfix
-            allUsages.addAll(findUsagesInPythonFiles(project, keyWithoutPrefix, fullKey, filePrefix))
-        }
-
-        return allUsages.toList()
-    }
-
-    private fun findUsagesInPythonFiles(
-        project: Project,
-        searchKey: String,
-        originalKey: String,
-        requiredFilePrefix: String?
-    ): List<KeyUsageLocation> {
+    private fun findUsagesInPythonFiles(project: Project, targetKey: String): List<KeyUsageLocation> {
         val results = mutableListOf<KeyUsageLocation>()
         val utils = LanguageUtils()
 
@@ -106,31 +83,11 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
                 val scope = GlobalSearchScope.projectScope(project)
                 val pythonFiles = FileTypeIndex.getFiles(PythonFileType.INSTANCE, scope)
 
-                // Beide Varianten für die Suche: mit und ohne geschweifte Klammern
-                val searchPatterns = listOf(
-                    searchKey,
-                    "{$searchKey}"
-                )
-
-                val languagePrefixes = utils.findLanguagePrefixes(project)
-
-                // Filter Python-Dateien basierend auf dem erforderlichen Präfix
                 val filteredFiles = pythonFiles.filter { vFile ->
-                    // Wenn ein Präfix erforderlich ist, prüfe die Kompatibilität
-                    if (requiredFilePrefix != null) {
-                        val filePrefix = utils.getFilePrefix(vFile.name) ?: return@filter false
-
-                        // Exakte Übereinstimmung oder der Datei-Präfix beginnt mit dem erforderlichen Präfix
-                        val matches = filePrefix == requiredFilePrefix ||
-                                filePrefix.startsWith("$requiredFilePrefix.")
-
-                        if (!matches) return@filter false
-                    }
-
-                    // Prüfe, ob die Datei einen der Suchbegriffe enthält
                     val doc = FileDocumentManager.getInstance().getDocument(vFile)
-                    val text = doc?.text ?: ""
-                    searchPatterns.any { pattern -> text.contains(pattern) }
+                    doc?.text?.let { text ->
+                        text.contains(targetKey) || text.contains("{$targetKey}")
+                    } ?: false
                 }
 
                 for (vFile in filteredFiles) {
@@ -146,6 +103,7 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
 
                         if (doc == null) continue
 
+                        // Visit all string literals
                         psiFile.accept(object : com.intellij.psi.PsiRecursiveElementWalkingVisitor() {
                             override fun visitElement(element: PsiElement) {
                                 super.visitElement(element)
@@ -153,7 +111,7 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
                                 if (element is PyStringLiteralExpression && element.isValid) {
                                     val text = utils.extractStringValue(element)
 
-                                    if (isKeyMatch(text, searchKey, originalKey, filePrefix, requiredFilePrefix)) {
+                                    if (isKeyMatch(text, targetKey, filePrefix)) {
                                         val line = doc.getLineNumber(element.textRange.startOffset)
                                         results.add(KeyUsageLocation(psiFile, element, line))
                                     }
@@ -172,42 +130,10 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
         return results
     }
 
-    private fun isKeyMatch(
-        text: String,
-        searchKey: String,
-        originalKey: String,
-        filePrefix: String?,
-        requiredFilePrefix: String?
-    ): Boolean {
-        // Extrahiere alle möglichen Keys aus dem String
+    private fun isKeyMatch(text: String, targetKey: String, filePrefix: String?): Boolean {
+        // Delegate key extraction and prefix handling to LanguageUtils
         val keysInText = LanguageUtils.findAllKeysInString(text, filePrefix)
-
-        // Prüfe ob searchKey oder originalKey im Text vorkommt
-        if (keysInText.contains(searchKey) || keysInText.contains(originalKey)) {
-            return true
-        }
-
-        // Zusätzliche Prüfung: Wenn wir nach einem Key ohne Präfix suchen (z.B. "embed.title")
-        // und in einer Datei mit passendem Präfix sind (z.B. "welcome.py"),
-        // dann sollte auch der vollständige Key matchen
-        if (requiredFilePrefix != null && filePrefix == requiredFilePrefix) {
-            val fullKeyVariant = "$filePrefix.$searchKey"
-            if (keysInText.contains(fullKeyVariant)) {
-                return true
-            }
-        }
-
-        // Wenn der originalKey einen Präfix hat und wir nach dem searchKey suchen,
-        // prüfe ob der Text den searchKey ohne Präfix enthält
-        if (searchKey != originalKey && originalKey.contains(".")) {
-            // z.B. originalKey = "welcome.embed.title", searchKey = "embed.title"
-            // Wenn der Text genau searchKey enthält, ist das ein Match
-            if (text == searchKey || text == "{$searchKey}") {
-                return true
-            }
-        }
-
-        return false
+        return keysInText.contains(targetKey)
     }
 
     private fun createTooltip(key: String, usages: List<KeyUsageLocation>): String {
@@ -245,14 +171,19 @@ class YamlKeyUsageLineMarkerProvider : LineMarkerProvider {
 
     private fun showPopup(event: MouseEvent, project: Project, usages: List<KeyUsageLocation>) {
         val limitedUsages = usages.take(20)
-        val items: List<KeyUsageLocation> = limitedUsages
+        val items = limitedUsages.map { usage ->
+            object {
+                override fun toString() = "${usage.file.name}:${usage.lineNumber + 1}"
+                val loc = usage
+            }
+        }
 
         val title = if (usages.size > 20) "Select Usage Location (showing first 20 of ${usages.size})" else "Select Usage Location"
 
         JBPopupFactory.getInstance()
             .createPopupChooserBuilder(items)
             .setTitle(title)
-            .setItemChosenCallback { navigateTo(project, it) }
+            .setItemChosenCallback { navigateTo(project, it.loc) }
             .createPopup()
             .show(RelativePoint(event))
     }
