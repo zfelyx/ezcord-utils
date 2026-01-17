@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0.3"
+version = "1.0.4"
 
 repositories {
     mavenCentral()
@@ -39,6 +39,11 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>Version 1.0.4 - Yaml to Usage ✨</h3>
+            <ul>
+                <li><b>Yaml to usage</b> - With this feature, you can now see what language keys are being used in your code directly from the YAML language files.</li>
+            </ul>
+            
             <h3>Version 1.0.3 - Navigation Improvements 🧭</h3>
             <ul>
                 <li><b>Fallback Language Navigation</b> - Use `Shift+Click` on language keys to navigate directly to the fallback language file (e.g. `en.yml`) instead of the default language</li>
