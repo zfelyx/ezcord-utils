@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiElement
 import com.intellij.ui.awt.RelativePoint
-import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 import java.awt.event.MouseEvent
@@ -19,13 +18,15 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
         // Only process leaf elements (first child) of Python string literals for performance
-        val parent = element.parent
-        if (parent !is PyStringLiteralExpression) return null
+        val parent = element.parent ?: return null
+        val isPyString = parent.javaClass.simpleName.contains("PyStringLiteralExpression")
+        if (!isPyString) return null
         if (parent.firstChild != element) return null  // Only register on the first leaf child
 
         val utils = LanguageUtils()
         val stringValue = utils.extractStringValue(parent)
         if (!utils.isValidLanguageKey(stringValue)) return null
+
 
         val resolver = LanguageResolver(parent.project)
         val filePrefix = utils.getFilePrefix(parent.containingFile.name)
@@ -52,11 +53,13 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
                 "Navigate to language key: ${foundKeys[0].first}$fallbackWarning"
             } else {
                 val fallbackWarning = if (hasFallbackOnly) " ⚠️ (some keys are fallback only)" else ""
-                "Navigate to language keys (click to choose):\n${foundKeys.joinToString("\n") { (key, _) ->
-                    val isFallback = !resolver.existsInPrimaryLanguage(key)
-                    val marker = if (isFallback) " ⚠️" else ""
-                    "  • $key$marker"
-                }}$fallbackWarning"
+                "Navigate to language keys (click to choose):\n${
+                    foundKeys.joinToString("\n") { (key, _) ->
+                        val isFallback = !resolver.existsInPrimaryLanguage(key)
+                        val marker = if (isFallback) " ⚠️" else ""
+                        "  • $key$marker"
+                    }
+                }$fallbackWarning"
             }
 
             return LineMarkerInfo(
@@ -108,7 +111,7 @@ class LanguageKeyLineMarkerProvider : LineMarkerProvider {
     private fun showNavigationPopup(
         mouseEvent: MouseEvent,
         keys: List<Pair<String, LanguageKeyLocation>>,
-        element: PyStringLiteralExpression,
+        element: PsiElement,
         utils: LanguageUtils,
         resolver: LanguageResolver,
         isControlDown: Boolean

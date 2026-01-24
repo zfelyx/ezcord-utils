@@ -4,9 +4,12 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -15,7 +18,6 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.search.UsageSearchContext
 import com.intellij.ui.awt.RelativePoint
-import com.jetbrains.python.psi.PyStringLiteralExpression
 import me.geckotv.ezcordutils.settings.EzCordSettings
 import me.geckotv.ezcordutils.utils.LanguageUtils
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -26,6 +28,53 @@ import java.awt.event.MouseEvent
 class LanguageKeyToUsageMarker : LineMarkerProvider {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+        return null
+    }
+
+    override fun collectSlowLineMarkers(
+        elements: List<PsiElement>,
+        result: MutableCollection<in LineMarkerInfo<*>>
+    ) {
+        if (elements.isEmpty()) return
+
+        val project = elements.first().project
+        val cacheService = LanguageKeyCacheService.getInstance(project)
+
+        for (element in elements) {
+            val fullKey = getKeyIfValid(element) ?: continue
+
+            val status = cacheService.getUsageStatus(fullKey) {
+                // Compute with file tracking
+                val (computedStatus, files) = hasAnyUsageWithFiles(project, fullKey)
+                // Update cache with file info for smart invalidation
+                cacheService.updateCacheWithFileInfo(fullKey, computedStatus, files)
+                computedStatus
+            }
+
+            if (status.isUsed()) {
+                // Use different icon for multiple usages
+                val icon = if (status == LanguageKeyCacheService.UsageStatus.MULTIPLE) {
+                    AllIcons.General.Show_to_implement
+                } else {
+                    AllIcons.Gutter.ImplementingMethod
+                }
+
+                result.add(
+                    LineMarkerInfo(
+                        element,
+                        element.textRange,
+                        icon,
+                        { "Find usages of '$fullKey'" },
+                        { e, _ -> showUsages(e, project, fullKey) },
+                        GutterIconRenderer.Alignment.RIGHT,
+                        { "Find usages" }
+                    )
+                )
+            }
+        }
+    }
+
+    private fun getKeyIfValid(element: PsiElement): String? {
         val parent = element.parent
         if (parent !is YAMLKeyValue) return null
         if (parent.key != element) return null
@@ -47,20 +96,7 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
 
         val fullKey = getFullKey(parent)
         if (fullKey.isEmpty()) return null
-
-        if (hasAnyUsage(project, fullKey)) {
-            return LineMarkerInfo(
-                element,
-                element.textRange,
-                AllIcons.Gutter.ImplementingMethod,
-                { "Find usages of '$fullKey'" },
-                { e, _ -> showUsages(e, project, fullKey) },
-                GutterIconRenderer.Alignment.RIGHT,
-                { "Find usages" }
-            )
-        }
-
-        return null
+        return fullKey
     }
 
     /**
@@ -83,15 +119,37 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
     }
 
     /**
-     * Checks if there is at least one usage of the key in the project.
+     * Checks usage count of the key in the project.
+     * Returns a pair of (UsageStatus, Set<FilePath>) for smart cache invalidation.
      */
-    private fun hasAnyUsage(project: Project, fullKey: String): Boolean {
-        var found = false
-        processKeyUsages(project, fullKey) {
-            found = true
-            false // Stop searching
+    private fun hasAnyUsageWithFiles(
+        project: Project,
+        fullKey: String
+    ): Pair<LanguageKeyCacheService.UsageStatus, Set<String>> {
+        val foundFiles = mutableSetOf<String>()
+        val foundElements = mutableSetOf<PsiElement>()
+        var usageCount = 0
+
+        processKeyUsages(project, fullKey) { element ->
+            // Deduplicate: same element might be visited twice by search helper
+            if (foundElements.add(element)) {
+                usageCount++
+                val file = element.containingFile.virtualFile
+                if (file != null) {
+                    foundFiles.add(file.path)
+                }
+            }
+            // Stop searching if we found at least 2 usages (we know it's MULTIPLE)
+            usageCount < 2
         }
-        return found
+
+        val status = when {
+            usageCount == 0 -> LanguageKeyCacheService.UsageStatus.UNUSED
+            usageCount == 1 -> LanguageKeyCacheService.UsageStatus.SINGLE
+            else -> LanguageKeyCacheService.UsageStatus.MULTIPLE
+        }
+
+        return Pair(status, foundFiles)
     }
 
     private fun findAllUsages(project: Project, fullKey: String): List<PsiElement> {
@@ -114,13 +172,36 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
         processor: (PsiElement) -> Boolean
     ): Boolean {
         val helper = PsiSearchHelper.getInstance(project)
-        val scope = GlobalSearchScope.projectScope(project)
-        val utils = LanguageUtils()
 
+        val scope = object : GlobalSearchScope(project) {
+            private val projectFileIndex = ProjectFileIndex.getInstance(project)
+
+            override fun contains(file: VirtualFile): Boolean {
+                if (file.extension != "py") return false
+
+                val path = file.path
+
+                if (path.contains("/.venv/") || path.contains("\\.venv\\")) return false
+                if (path.contains("/venv/") || path.contains("\\venv\\")) return false
+                if (path.contains("/__pycache__/") || path.contains("\\__pycache__\\")) return false
+                if (path.contains("/node_modules/") || path.contains("\\node_modules\\")) return false
+                if (path.contains("/.git/") || path.contains("\\.git\\")) return false
+                if (path.contains("/build/") || path.contains("\\build\\")) return false
+                if (path.contains("/dist/") || path.contains("\\dist\\")) return false
+                if (path.contains("/.pytest_cache/") || path.contains("\\.pytest_cache\\")) return false
+                if (path.contains("/site-packages/") || path.contains("\\site-packages\\")) return false
+
+                return projectFileIndex.isInContent(file)
+            }
+
+            override fun isSearchInModuleContent(aModule: Module): Boolean = true
+            override fun isSearchInLibraries(): Boolean = false
+        }
+
+        val utils = LanguageUtils()
         val keyParts = fullKey.split(".")
         val searchWord = keyParts.lastOrNull() ?: fullKey
 
-        // Common logic to check an element and invoke the processor if it matches
         fun processElement(element: PsiElement, keyToCheck: String): Boolean {
             val literal = getParentLiteral(element) ?: return true
             val str = utils.extractStringValue(literal)
@@ -130,15 +211,19 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
             return true
         }
 
-        // 1. Explicit usage search
-        if (!helper.processElementsWithWord(
-                { element, _ -> processElement(element, fullKey) },
-                scope,
-                searchWord,
-                UsageSearchContext.IN_STRINGS,
-                true
-            )
-        ) return false
+        // 1. Explicit usage search - most common case
+        val explicitSearchCompleted = helper.processElementsWithWord(
+            { element, _ -> processElement(element, fullKey) },
+            scope,
+            searchWord,
+            UsageSearchContext.IN_STRINGS,
+            true
+        )
+
+        // If explicit search was stopped (returned false), it means we found usage
+        if (!explicitSearchCompleted) {
+            return false
+        }
 
         // 2. Implicit usage via file prefixes
         if (keyParts.size > 1) {
@@ -148,6 +233,9 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
 
                 val filename = "$prefix.py"
                 val files = FilenameIndex.getVirtualFilesByName(filename, scope)
+
+                // Only search if the file actually exists
+                if (files.isEmpty()) continue
 
                 for (f in files) {
                     val fileScope = GlobalSearchScope.fileScope(project, f)
@@ -168,10 +256,10 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
         return true
     }
 
-    private fun getParentLiteral(element: PsiElement): PyStringLiteralExpression? {
+    private fun getParentLiteral(element: PsiElement): PsiElement? {
         var current: PsiElement? = element
         while (current != null) {
-            if (current is PyStringLiteralExpression) return current
+            if (current.javaClass.simpleName.contains("PyStringLiteralExpression")) return current
             if (current is PsiFile) return null
             current = current.parent
         }
@@ -212,4 +300,3 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
         }
     }
 }
-
