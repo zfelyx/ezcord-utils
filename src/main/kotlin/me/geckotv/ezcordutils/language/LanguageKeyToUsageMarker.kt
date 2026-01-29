@@ -143,9 +143,9 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
             usageCount < 2
         }
 
-        val status = when {
-            usageCount == 0 -> LanguageKeyCacheService.UsageStatus.UNUSED
-            usageCount == 1 -> LanguageKeyCacheService.UsageStatus.SINGLE
+        val status = when (usageCount) {
+            0 -> LanguageKeyCacheService.UsageStatus.UNUSED
+            1 -> LanguageKeyCacheService.UsageStatus.SINGLE
             else -> LanguageKeyCacheService.UsageStatus.MULTIPLE
         }
 
@@ -200,7 +200,7 @@ class LanguageKeyToUsageMarker : LineMarkerProvider {
 
         val utils = LanguageUtils()
         val keyParts = fullKey.split(".")
-        val searchWord = keyParts.lastOrNull() ?: fullKey
+        val searchWord = keyParts.maxByOrNull { it.length } ?: fullKey
 
         fun processElement(element: PsiElement, keyToCheck: String): Boolean {
             val literal = getParentLiteral(element) ?: return true
