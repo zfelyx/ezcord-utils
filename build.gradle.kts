@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.geckotv"
-version = "1.0.5"
+version = "1.0.6"
 
 repositories {
     mavenCentral()
@@ -42,6 +42,12 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>Version 1.0.6 - Bug Fixes & Improvements 🐞</h3>
+            <ul>
+                <li><b>Bug Fixes</b> - Fixed a bug where the autocomplete would not work in certain scenarios</li>
+                <li><b>Performance Improvements</b> - Improve the performance of the Yaml to Usage feature</li>
+            </ul>
+            
             <h3>Version 1.0.5 - Optimizing some stuff 🫡</h3>
             <ul>
                 <li><b>Performance Improvements</b> - Improved performance when working with large projects</li>
